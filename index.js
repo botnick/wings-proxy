@@ -32,21 +32,14 @@ app.get('/', (req, res) => {
 
 app.use('/api/*', proxy(process.env.API_PROXY_URL, {
     // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
-    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
-      // ส่ง headers ทั้งหมดจาก client
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {     
       Object.keys(srcReq.headers).forEach((key) => {
         proxyReqOpts.headers[key] = srcReq.headers[key];
-      });
-  
-      // ตั้งค่า headers เพิ่มเติมตามที่ Nginx กำหนด
-      proxyReqOpts.headers['X-Forwarded-For'] = srcReq.headers['x-forwarded-for'] || srcReq.connection.remoteAddress;
-      proxyReqOpts.headers['X-Real-IP'] = srcReq.connection.remoteAddress;
-      proxyReqOpts.headers['X-Forwarded-Proto'] = srcReq.protocol;
-  
+      });     
       return proxyReqOpts;
     },
     proxyReqPathResolver: (req) => {
-      return req.path; // ส่งเส้นทางที่เหมือนเดิมไปยังปลายทาง
+      return req.path; 
     },
   }));
 
