@@ -1,5 +1,5 @@
 const express = require('express');
-const expressProxy = require('express-proxy');
+const proxy = require('express-proxy');
 
 const http = require('http');
 const https = require('https');
