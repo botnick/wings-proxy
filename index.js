@@ -1,6 +1,5 @@
 const express = require('express');
 var proxy = require('express-http-proxy');
-
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -29,15 +28,18 @@ const createResponse = (status, req) => ({
 
 // Use proxy for all routes
 
+app.use('/', (req, res) => {
+    res.status(200).json(createResponse("success", req));
+});
 
-app.use('/', proxy(process.env.API_PROXY_URL));
 
-// จัดการข้อผิดพลาด 404
-/*
+app.use('/api/*', proxy(process.env.API_PROXY_URL));
+
+
+
 app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
 });
-*/
 
 
 // สร้างเซิร์ฟเวอร์ HTTP 
