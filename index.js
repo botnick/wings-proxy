@@ -20,8 +20,8 @@ const createResponse = (status, req) => ({
     status,
     ...serverInfo,
     userAgent: req.headers['user-agent'] || 'unknown',
-    ipAddress: req.ip,
-    ipType: req.ip.includes(':') ? 'IPv6' : 'IPv4'
+    ipAddress: req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip,
+    ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
 // เส้นทางหลัก '/'
@@ -33,10 +33,19 @@ app.get('/', (req, res) => {
 const proxyMiddleware = createProxyMiddleware({
     target: process.env.API_PROXY_URL,
     changeOrigin: true,
-    proxyTimeout: 1000,
+    proxyTimeout: 5000, // เพิ่ม timeout เป็น 5 วินาที
     onError: (err, req, res) => {
         console.error('Proxy Error:', err);
-        res.status(500).json({ error: 'Proxy Error' });
+        
+        if (res.headersSent) {
+            return req.socket.destroy();
+        }
+
+        res.status(500).json({
+            error: 'Proxy Error',
+            message: err.message,
+            code: err.code || 'unknown'
+        });
     },
     onProxyReq: (proxyReq, req, res) => {
         console.log(`Proxying: ${req.method} ${req.url} to ${proxyReq.path}`);
@@ -51,21 +60,24 @@ app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
 });
 
-// SSL options จากไฟล์ .env
-const options = {
-    key: fs.readFileSync(process.env.SSL_KEY_PATH, 'utf8'),
-    cert: fs.readFileSync(process.env.SSL_CERT_PATH, 'utf8')
-};
-
 // สร้างเซิร์ฟเวอร์ HTTP 
 http.createServer(app).listen(80, () => {
     console.log('Server started on port 80 (HTTP)');
 });
 
-// สร้างเซิร์ฟเวอร์ HTTPS
-https.createServer(options, app).listen(443, () => {
-    console.log('Server started on port 443 with SSL (HTTPS)');
-});
+// ตรวจสอบว่าไฟล์ SSL key และ cert มีอยู่จริงก่อนสร้าง HTTPS server
+if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CERT_PATH)) {
+    const options = {
+        key: fs.readFileSync(process.env.SSL_KEY_PATH, 'utf8'),
+        cert: fs.readFileSync(process.env.SSL_CERT_PATH, 'utf8')
+    };
+
+    https.createServer(options, app).listen(443, () => {
+        console.log('Server started on port 443 with SSL (HTTPS)');
+    });
+} else {
+    console.error('SSL key or certificate not found. HTTPS server not started.');
+}
 
 // จัดการข้อผิดพลาดที่ไม่ได้จัดการ
 process.on('uncaughtException', console.error);
