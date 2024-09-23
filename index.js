@@ -48,40 +48,53 @@ app.use((req, res) => {
     res.status(404).json(createResponse("error", req));
 });
 
-// Create HTTP server
+// สร้าง HTTP server
 const server = http.createServer(app);
 
-// Set up WebSocket proxy manually
+// สร้าง WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
+
+// จัดการการเชื่อมต่อ WebSocket
 wss.on('connection', (ws, req) => {
-    // Extract headers from the client request
-    const clientHeaders = req.headers;
+    // สร้าง URL สำหรับเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทาง รวมพาธและ query parameters
+    const backendUrl = `ws://localhost:8080${req.url}`; // แก้ไข 'localhost' และพอร์ตตามความเหมาะสม
 
-    // Create a WebSocket connection to the target server
-    const targetWs = new WebSocket('ws://0.0.0.0:8080', {
-        headers: clientHeaders  // Forward client headers to the target WebSocket server
-    });
-
-    // Wait until the target WebSocket is open before forwarding messages
-    targetWs.on('open', () => {
-        ws.on('message', (message) => {
-            if (targetWs.readyState === WebSocket.OPEN) {
-                targetWs.send(message);  // Forward message from client to target server
-            } else {
-                console.error('Target WebSocket is not open');
-            }
-        });
-    });
-
-    targetWs.on('message', (message) => {
-        if (ws.readyState === WebSocket.OPEN) {
-            ws.send(message);  // Forward message from target server to client
-        } else {
-            console.error('Client WebSocket is not open');
+    // สร้างการเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทาง
+    const targetWs = new WebSocket(backendUrl, {
+        headers: {
+            // ส่งต่อ headers ที่จำเป็นเท่านั้น
+            'User-Agent': req.headers['user-agent'],
+            'Cookie': req.headers['cookie'],
+            'Authorization': req.headers['authorization']
+            // เพิ่ม headers อื่น ๆ ที่เซิร์ฟเวอร์ปลายทางต้องการ
         }
     });
 
-    // Handle WebSocket closing
+    // เมื่อการเชื่อมต่อกับเซิร์ฟเวอร์ปลายทางเปิดแล้ว
+    targetWs.on('open', () => {
+        // ส่งต่อข้อความจากลูกค้าไปยังเซิร์ฟเวอร์ปลายทาง
+        ws.on('message', (message) => {
+            targetWs.send(message);
+        });
+
+        // ส่งต่อข้อความจากเซิร์ฟเวอร์ปลายทางไปยังลูกค้า
+        targetWs.on('message', (message) => {
+            ws.send(message);
+        });
+    });
+
+    // จัดการข้อผิดพลาด
+    targetWs.on('error', (err) => {
+        console.error('Error in target WebSocket connection:', err);
+        ws.close();
+    });
+
+    ws.on('error', (err) => {
+        console.error('Error in client WebSocket connection:', err);
+        targetWs.close();
+    });
+
+    // จัดการการปิดการเชื่อมต่อ
     ws.on('close', () => {
         targetWs.close();
     });
@@ -91,9 +104,9 @@ wss.on('connection', (ws, req) => {
     });
 });
 
-// Handle HTTP upgrade requests for WebSocket
+// จัดการคำขอ HTTP upgrade สำหรับ WebSocket
 server.on('upgrade', (request, socket, head) => {
-    // Check if the request is for WebSocket
+    // ตรวจสอบว่าคำขอเป็น WebSocket หรือไม่
     if (request.headers.upgrade && request.headers.upgrade.toLowerCase() === 'websocket') {
         wss.handleUpgrade(request, socket, head, (ws) => {
             wss.emit('connection', ws, request);
@@ -103,12 +116,12 @@ server.on('upgrade', (request, socket, head) => {
     }
 });
 
-// Start HTTP server
+// เริ่มต้น HTTP server
 server.listen(80, () => {
     console.log('Server started on port 80 (HTTP)');
 });
 
-// HTTPS setup if SSL certificates exist
+// ตั้งค่า HTTPS ถ้ามี SSL certificates
 if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CERT_PATH)) {
     const options = {
         key: fs.readFileSync(process.env.SSL_KEY_PATH, 'utf8'),
@@ -116,10 +129,53 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
     };
     const httpsServer = https.createServer(options, app);
 
+    // สร้าง WebSocket server สำหรับ HTTPS
+    const wssHttps = new WebSocket.Server({ noServer: true });
+
+    wssHttps.on('connection', (ws, req) => {
+        const backendUrl = `ws://localhost:8080${req.url}`;
+
+        const targetWs = new WebSocket(backendUrl, {
+            headers: {
+                'User-Agent': req.headers['user-agent'],
+                'Cookie': req.headers['cookie'],
+                'Authorization': req.headers['authorization']
+            }
+        });
+
+        targetWs.on('open', () => {
+            ws.on('message', (message) => {
+                targetWs.send(message);
+            });
+
+            targetWs.on('message', (message) => {
+                ws.send(message);
+            });
+        });
+
+        targetWs.on('error', (err) => {
+            console.error('Error in target WebSocket connection:', err);
+            ws.close();
+        });
+
+        ws.on('error', (err) => {
+            console.error('Error in client WebSocket connection:', err);
+            targetWs.close();
+        });
+
+        ws.on('close', () => {
+            targetWs.close();
+        });
+
+        targetWs.on('close', () => {
+            ws.close();
+        });
+    });
+
     httpsServer.on('upgrade', (request, socket, head) => {
         if (request.headers.upgrade && request.headers.upgrade.toLowerCase() === 'websocket') {
-            wss.handleUpgrade(request, socket, head, (ws) => {
-                wss.emit('connection', ws, request);
+            wssHttps.handleUpgrade(request, socket, head, (ws) => {
+                wssHttps.emit('connection', ws, request);
             });
         } else {
             socket.destroy();
@@ -133,6 +189,6 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
     console.error('SSL key or certificate not found. HTTPS server not started.');
 }
 
-// Handle uncaught exceptions and unhandled rejections
+// จัดการ uncaught exceptions และ unhandled rejections
 process.on('uncaughtException', console.error);
 process.on('unhandledRejection', console.error);
