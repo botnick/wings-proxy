@@ -29,52 +29,27 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
-// CORS Middleware เพื่อจัดการ headers
+// Logging middleware
 app.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', '*'); // แก้ตรงนี้
-    res.header('Access-Control-Allow-Credentials', 'true');
-    res.header('Access-Control-Allow-Headers', 'Authorization, Accept, Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Content-Range, Range');
-    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
-
-    // หากเป็นการ request แบบ OPTIONS ให้ตอบกลับ status 204 โดยไม่ต้องส่งต่อไปยัง backend
-    if (req.method === 'OPTIONS') {
-        res.header('Access-Control-Max-Age', '1728000');
-        res.header('Content-Type', 'text/plain charset=UTF-8');
-        res.header('Content-Length', '0');
-        return res.sendStatus(204);
-    }
-    
+    console.log(`Request: ${req.method} ${req.originalUrl}`);
     next();
 });
 
-// Proxy สำหรับเส้นทาง /api
-const proxyMiddleware = createProxyMiddleware({
-    target: process.env.API_PROXY_URL, // แก้ตรงนี้
+// Proxy middleware for /api/*
+app.use('/api/*', createProxyMiddleware({
+    target: process.env.API_PROXY_URL, // เปลี่ยนเป็น URL ที่คุณต้องการ proxy ไปหา
     changeOrigin: true,
-    proxyTimeout: 5000, // เพิ่ม timeout เป็น 5 วินาที
-    onError: (err, req, res) => {
-        console.error('Proxy Error:', err);
-        
-        if (res.headersSent) {
-            return req.socket.destroy();
-        }
-
-        res.status(500).json({
-            error: 'Proxy Error',
-            message: err.message,
-            code: err.code || 'unknown'
-        });
+    pathRewrite: {
+      '^/api': '', // ลบ '/api' ออกจากเส้นทางก่อนส่งไปยังเป้าหมาย
     },
     onProxyReq: (proxyReq, req, res) => {
-        console.log(`Proxying: ${req.method} ${req.url} to ${proxyReq.path}`);
+      console.log(`Proxying request to: ${proxyReq.path}`);
     },
-    onProxyRes: (proxyRes, req, res) => {       
-        proxyRes.headers['Access-Control-Allow-Origin'] = '*'; // แก้ตรงนี้
-    }
-});
-
-// ใช้ proxy สำหรับเส้นทาง /api
-app.use('/api', proxyMiddleware);
+    onProxyRes: (proxyRes, req, res) => {
+      console.log(`Received response with status: ${proxyRes.statusCode}`);
+    },
+    logLevel: 'debug', // ระดับ log สำหรับ proxy (debug, info, warn, error)
+  }));
 
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
