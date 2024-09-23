@@ -1,5 +1,4 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
@@ -29,41 +28,25 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
-// Logging middleware
-app.use((req, res, next) => {
-    console.log(`Request: ${req.method} ${req.originalUrl}`);
-    console.log('Request Headers:', req.headers);
-  next();
-});
-   
-
-app.use('api/*', createProxyMiddleware({
-    target: process.env.API_PROXY_URL, // เปลี่ยนเป็น URL ที่คุณต้องการ
-    changeOrigin: true,
-    ws: true, // รองรับ WebSocket
-    onProxyReq: (proxyReq, req, res) => {
-      // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
-      Object.keys(req.headers).forEach((key) => {
-        proxyReq.setHeader(key, req.headers[key]);
+app.use('/api/*', proxy(API_PROXY_URL, {
+    // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
+    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
+      // ส่ง headers ทั้งหมดจาก client
+      Object.keys(srcReq.headers).forEach((key) => {
+        proxyReqOpts.headers[key] = srcReq.headers[key];
       });
   
       // ตั้งค่า headers เพิ่มเติมตามที่ Nginx กำหนด
-      proxyReq.setHeader('X-Forwarded-For', req.headers['x-forwarded-for'] || req.connection.remoteAddress);
-      proxyReq.setHeader('X-Real-IP', req.connection.remoteAddress);
-      proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
-      proxyReq.setHeader('Upgrade', req.headers['upgrade']);
-      proxyReq.setHeader('Connection', 'upgrade');
+      proxyReqOpts.headers['X-Forwarded-For'] = srcReq.headers['x-forwarded-for'] || srcReq.connection.remoteAddress;
+      proxyReqOpts.headers['X-Real-IP'] = srcReq.connection.remoteAddress;
+      proxyReqOpts.headers['X-Forwarded-Proto'] = srcReq.protocol;
   
-      console.log(`Proxying request to: ${proxyReq.path}`);
-      console.log('Request Headers sent to target:', req.headers);
+      return proxyReqOpts;
     },
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`Received response with status: ${proxyRes.statusCode}`);
-      // แสดง headers ที่ได้รับจากปลายทาง
-      console.log('Response Headers:', proxyRes.headers);
+    proxyReqPathResolver: (req) => {
+      return req.path; // ส่งเส้นทางที่เหมือนเดิมไปยังปลายทาง
     },
-    logLevel: 'debug',
-}));
+  }));
 
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
