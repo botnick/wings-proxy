@@ -27,11 +27,6 @@ const createResponse = (status, req) => ({
 // Proxy สำหรับ /api/*
 app.use('/api/*', proxy(process.env.API_PROXY_URL));
 
-// สำหรับเส้นทาง / (root path)
-app.get('/', (req, res) => {
-    res.status(200).json(createResponse("success", req));
-});
-
 // 404 สำหรับเส้นทางอื่นๆ ที่เหลือ
 app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
