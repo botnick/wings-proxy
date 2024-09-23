@@ -25,7 +25,7 @@ const createResponse = (status, req) => ({
 });
 
 // Proxy สำหรับ /api/*
-app.use('/api', proxy(process.env.API_PROXY_URL));
+app.use('/api/*', proxy(process.env.API_PROXY_URL));
 
 // สำหรับเส้นทาง / (root path)
 app.get('/', (req, res) => {
