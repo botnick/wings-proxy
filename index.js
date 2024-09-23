@@ -28,9 +28,9 @@ const createResponse = (status, req) => ({
 
 // Use proxy for all routes
 
-app.use('/', (req, res) => {
+/*app.use('/', (req, res) => {
     res.status(200).json(createResponse("success", req));
-});
+});*/
 
 
 app.use('api/*', proxy(process.env.API_PROXY_URL));
