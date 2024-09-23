@@ -30,7 +30,7 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
-app.use('/api/*', proxy(API_PROXY_URL, {
+app.use('/api/*', proxy(process.env.API_PROXY_URL, {
     // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
     proxyReqOptDecorator: (proxyReqOpts, srcReq) => {
       // ส่ง headers ทั้งหมดจาก client
