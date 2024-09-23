@@ -33,7 +33,7 @@ app.use('/', (req, res) => {
 });
 
 
-app.use('/api/*', proxy(process.env.API_PROXY_URL));
+app.use('api/*', proxy(process.env.API_PROXY_URL));
 
 
 app.use('*', (req, res) => {
