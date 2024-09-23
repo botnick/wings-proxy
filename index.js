@@ -24,11 +24,11 @@ const createResponse = (status, req) => ({
     ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
-// Proxy สำหรับ /api/*
+// ใช้ proxy สำหรับ /api/*
 app.use('/api', proxy(process.env.API_PROXY_URL));
 
-// 404 สำหรับเส้นทางอื่นๆ ที่เหลือ
-app.use('/', (req, res) => {
+// ส่งกลับ 404 สำหรับเส้นทางอื่น ๆ
+app.use((req, res) => {
     res.status(404).json(createResponse("error", req));
 });
 
