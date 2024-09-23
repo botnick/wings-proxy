@@ -25,7 +25,7 @@ const createResponse = (status, req) => ({
 });
 
 // Proxy สำหรับ /api/*
-app.use('/api/*', proxy(process.env.API_PROXY_URL));
+app.use('/api', proxy(process.env.API_PROXY_URL));
 
 // 404 สำหรับเส้นทางอื่นๆ ที่เหลือ
 app.use('/', (req, res) => {
