@@ -39,20 +39,28 @@ app.use((req, res, next) => {
 
 // Proxy middleware for /api/*
 app.use('/api/*', createProxyMiddleware({
-    target: process.env.API_PROXY_URL, // เปลี่ยนเป็น URL ที่คุณต้องการ proxy ไปหา
-    changeOrigin: true,   
+    target: process.env.API_PROXY_URL,
+    changeOrigin: true,
     onProxyReq: (proxyReq, req, res) => {
-        console.log(`Proxying request to: ${proxyReq.path}`);
-        // แสดง headers ที่จะถูกส่งไปยังเป้าหมาย
-        console.log('Proxy Request Headers:', proxyReq.getHeaders());
-      },
-      onProxyRes: (proxyRes, req, res) => {
-        console.log(`Received response with status: ${proxyRes.statusCode}`);
-        // แสดง headers ที่ได้รับจากเซิร์ฟเวอร์เป้าหมาย
-        console.log('Response Headers:', proxyRes.headers);
-      },
-      logLevel: 'debug', // ระดับ log สำหรับ proxy (debug, info, warn, error)
-}));
+      console.log(`Proxying request to: ${proxyReq.path}`);
+      
+      // ส่ง headers จาก client ไปยังปลายทาง
+      Object.keys(req.headers).forEach((key) => {
+        proxyReq.setHeader(key, req.headers[key]);
+      });
+  
+      console.log('Request Headers sent to target:', req.headers);
+  
+      // ถ้าต้องการส่ง headers เพิ่มเติมไปยังปลายทาง
+      proxyReq.setHeader('Header-Name', 'Header-Value');
+    },
+    onProxyRes: (proxyRes, req, res) => {
+      console.log(`Received response with status: ${proxyRes.statusCode}`);
+      // แสดง headers ที่ได้รับจากปลายทาง
+      console.log('Response Headers:', proxyRes.headers);
+    },
+    logLevel: 'debug',
+  }));
 
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
