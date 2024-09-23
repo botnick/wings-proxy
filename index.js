@@ -37,22 +37,25 @@ app.use((req, res, next) => {
 });
    
 
-// Proxy middleware for /api/*
-app.use('/api/*', createProxyMiddleware({
-    target: process.env.API_PROXY_URL,
+app.use('api/*', createProxyMiddleware({
+    target: 'http://0.0.0.0:8080', // เปลี่ยนเป็น URL ที่คุณต้องการ
     changeOrigin: true,
+    ws: true, // รองรับ WebSocket
     onProxyReq: (proxyReq, req, res) => {
-      console.log(`Proxying request to: ${proxyReq.path}`);
-      
-      // ส่ง headers จาก client ไปยังปลายทาง
+      // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
       Object.keys(req.headers).forEach((key) => {
         proxyReq.setHeader(key, req.headers[key]);
       });
   
-      console.log('Request Headers sent to target:', req.headers);
+      // ตั้งค่า headers เพิ่มเติมตามที่ Nginx กำหนด
+      proxyReq.setHeader('X-Forwarded-For', req.headers['x-forwarded-for'] || req.connection.remoteAddress);
+      proxyReq.setHeader('X-Real-IP', req.connection.remoteAddress);
+      proxyReq.setHeader('X-Forwarded-Proto', req.protocol);
+      proxyReq.setHeader('Upgrade', req.headers['upgrade']);
+      proxyReq.setHeader('Connection', 'upgrade');
   
-      // ถ้าต้องการส่ง headers เพิ่มเติมไปยังปลายทาง
-      proxyReq.setHeader('Header-Name', 'Header-Value');
+      console.log(`Proxying request to: ${proxyReq.path}`);
+      console.log('Request Headers sent to target:', req.headers);
     },
     onProxyRes: (proxyRes, req, res) => {
       console.log(`Received response with status: ${proxyRes.statusCode}`);
@@ -60,7 +63,7 @@ app.use('/api/*', createProxyMiddleware({
       console.log('Response Headers:', proxyRes.headers);
     },
     logLevel: 'debug',
-  }));
+}));
 
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
