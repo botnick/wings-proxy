@@ -32,8 +32,10 @@ app.get('/', (req, res) => {
 // Logging middleware
 app.use((req, res, next) => {
     console.log(`Request: ${req.method} ${req.originalUrl}`);
-    next();
+    console.log('Request Headers:', req.headers);
+  next();
 });
+   
 
 // Proxy middleware for /api/*
 app.use('/api/*', createProxyMiddleware({
@@ -43,13 +45,17 @@ app.use('/api/*', createProxyMiddleware({
       '^/api': '', // ลบ '/api' ออกจากเส้นทางก่อนส่งไปยังเป้าหมาย
     },
     onProxyReq: (proxyReq, req, res) => {
-      console.log(`Proxying request to: ${proxyReq.path}`);
-    },
-    onProxyRes: (proxyRes, req, res) => {
-      console.log(`Received response with status: ${proxyRes.statusCode}`);
-    },
-    logLevel: 'debug', // ระดับ log สำหรับ proxy (debug, info, warn, error)
-  }));
+        console.log(`Proxying request to: ${proxyReq.path}`);
+        // แสดง headers ที่จะถูกส่งไปยังเป้าหมาย
+        console.log('Proxy Request Headers:', proxyReq.getHeaders());
+      },
+      onProxyRes: (proxyRes, req, res) => {
+        console.log(`Received response with status: ${proxyRes.statusCode}`);
+        // แสดง headers ที่ได้รับจากเซิร์ฟเวอร์เป้าหมาย
+        console.log('Response Headers:', proxyRes.headers);
+      },
+      logLevel: 'debug', // ระดับ log สำหรับ proxy (debug, info, warn, error)
+}));
 
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
