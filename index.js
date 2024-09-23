@@ -1,5 +1,5 @@
 const express = require('express');
-const proxy = require('express-proxy');
+const expressProxy = require('express-proxy');
 
 const http = require('http');
 const https = require('https');
@@ -37,8 +37,8 @@ const apiProxy = expressProxy(process.env.API_PROXY_URL, {
       res.status(500).send('Proxy Error');
     }
 });
-app.use('/api/*', apiProxy);
 
+app.use('/api/*', apiProxy);
 
 // จัดการข้อผิดพลาด 404
 /*
