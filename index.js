@@ -30,23 +30,23 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
-app.use('/api/*', proxy(process.env.API_PROXY_URL, {
-    // ส่ง headers จาก client ไปยังปลายทางแบบ 1:1
-    proxyReqOptDecorator: (proxyReqOpts, srcReq) => {     
-      Object.keys(srcReq.headers).forEach((key) => {
-        proxyReqOpts.headers[key] = srcReq.headers[key];
-      });     
-      return proxyReqOpts;
-    },
-    proxyReqPathResolver: (req) => {
-      return req.path; 
-    },
-  }));
+const apiProxy = expressProxy(process.env.API_PROXY_URL, {
+    preserveHostHdr: true,
+    proxyErrorHandler: (err, res, next) => {
+      console.error('Proxy Error:', err);
+      res.status(500).send('Proxy Error');
+    }
+});
+app.use('/api/*', apiProxy);
+
 
 // จัดการข้อผิดพลาด 404
+/*
 app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
 });
+*/
+
 
 // สร้างเซิร์ฟเวอร์ HTTP 
 http.createServer(app).listen(80, () => {
