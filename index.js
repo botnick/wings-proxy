@@ -40,10 +40,7 @@ app.use((req, res, next) => {
 // Proxy middleware for /api/*
 app.use('/api/*', createProxyMiddleware({
     target: process.env.API_PROXY_URL, // เปลี่ยนเป็น URL ที่คุณต้องการ proxy ไปหา
-    changeOrigin: true,
-    pathRewrite: {
-      '^/api': '', // ลบ '/api' ออกจากเส้นทางก่อนส่งไปยังเป้าหมาย
-    },
+    changeOrigin: true,   
     onProxyReq: (proxyReq, req, res) => {
         console.log(`Proxying request to: ${proxyReq.path}`);
         // แสดง headers ที่จะถูกส่งไปยังเป้าหมาย
