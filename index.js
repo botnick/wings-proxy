@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 const https = require('https');
 const fs = require('fs');
 require('dotenv').config(); // โหลดค่าจากไฟล์ .env
@@ -55,9 +56,14 @@ const options = {
     cert: fs.readFileSync(process.env.SSL_CERT_PATH, 'utf8')
 };
 
-// สร้างเซิร์ฟเวอร์ HTTPS โดยใช้ Express
+// สร้างเซิร์ฟเวอร์ HTTP 
+http.createServer(app).listen(80, () => {
+    console.log('Server started on port 80 (HTTP)');
+});
+
+// สร้างเซิร์ฟเวอร์ HTTPS
 https.createServer(options, app).listen(443, () => {
-    console.log('Server started on port 443 with SSL');
+    console.log('Server started on port 443 with SSL (HTTPS)');
 });
 
 // จัดการข้อผิดพลาดที่ไม่ได้จัดการ
