@@ -38,7 +38,7 @@ app.use((req, res, next) => {
    
 
 app.use('api/*', createProxyMiddleware({
-    target: 'http://0.0.0.0:8080', // เปลี่ยนเป็น URL ที่คุณต้องการ
+    target: process.env.API_PROXY_URL, // เปลี่ยนเป็น URL ที่คุณต้องการ
     changeOrigin: true,
     ws: true, // รองรับ WebSocket
     onProxyReq: (proxyReq, req, res) => {
