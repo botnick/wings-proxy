@@ -24,6 +24,7 @@ const createResponse = (status, req) => ({
     ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
+// Middleware เพื่อตรวจสอบ request ที่เข้ามา
 app.use((req, res, next) => {
     console.log(`Incoming request: ${req.method} ${req.url}`);
     next();
@@ -35,16 +36,17 @@ app.use('/api', proxy(process.env.API_PROXY_URL, {
     }
 }));
 
+// ส่งกลับ 404 สำหรับเส้นทางอื่น ๆ
 app.use((req, res) => {
     res.status(404).json(createResponse("error", req));
 });
 
-var server = require('http').createServer(app);
-
+// สร้างเซิร์ฟเวอร์ HTTP 
 http.createServer(app).listen(80, () => {
     console.log('Server started on port 80 (HTTP)');
 });
 
+// ตรวจสอบว่าไฟล์ SSL key และ cert มีอยู่จริงก่อนสร้าง HTTPS server
 if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CERT_PATH)) {
     const options = {
         key: fs.readFileSync(process.env.SSL_KEY_PATH, 'utf8'),
@@ -57,5 +59,6 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
     console.error('SSL key or certificate not found. HTTPS server not started.');
 }
 
+// จัดการข้อผิดพลาดที่ไม่ได้จัดการ
 process.on('uncaughtException', console.error);
 process.on('unhandledRejection', console.error);
