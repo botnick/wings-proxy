@@ -25,20 +25,15 @@ const createResponse = (status, req) => ({
     ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
-// เส้นทางหลัก '/'
-app.get('/', (req, res) => {
-    res.json(createResponse("success", req));
-});
-
-const apiProxy = expressProxy(process.env.API_PROXY_URL, {
-    preserveHostHdr: true,
-    proxyErrorHandler: (err, res, next) => {
-      console.error('Proxy Error:', err);
-      res.status(500).send('Proxy Error');
+// Proxy middleware
+const apiProxy = proxy(process.env.API_PROXY_URL, {
+    forwardPath: function(req, res) {
+      return require('url').parse(req.url).path;
     }
-});
-
-app.use('/api/*', apiProxy);
+  });
+  
+  // Use proxy for all routes
+  app.use('/', apiProxy);
 
 // จัดการข้อผิดพลาด 404
 /*
