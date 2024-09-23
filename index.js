@@ -53,16 +53,22 @@ const server = http.createServer(app);
 
 // Set up WebSocket proxy manually
 const wss = new WebSocket.Server({ noServer: true });
-wss.on('connection', (ws) => {
-    const targetWs = new WebSocket('ws://0.0.0.0:8080'); // Proxy target server
+wss.on('connection', (ws, req) => {
+    // Extract headers from the client request
+    const clientHeaders = req.headers;
+
+    // Create a WebSocket connection to the target server
+    const targetWs = new WebSocket('ws://0.0.0.0:8080', {
+        headers: clientHeaders  // Forward client headers to the target WebSocket server
+    });
 
     // Forward messages between the client and the target server
     ws.on('message', (message) => {
-        targetWs.send(message);
+        targetWs.send(message);  // Forward message from client to target server
     });
 
     targetWs.on('message', (message) => {
-        ws.send(message);
+        ws.send(message);  // Forward message from target server to client
     });
 
     // Handle WebSocket closing
