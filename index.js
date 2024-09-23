@@ -1,5 +1,5 @@
 const express = require('express');
-const { createProxyMiddleware } = require('http-proxy-middleware');
+const https = require('https');
 const fs = require('fs');
 require('dotenv').config(); // โหลดค่าจากไฟล์ .env
 
@@ -27,23 +27,6 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
-// Proxy สำหรับเส้นทาง /api
-const proxyMiddleware = createProxyMiddleware({
-    target: process.env.API_PROXY_URL,
-    changeOrigin: true,
-    proxyTimeout: 1000,
-    onError: (err, req, res) => {
-        console.error('Proxy Error:', err);
-        res.status(500).json({ error: 'Proxy Error' });
-    },
-    onProxyReq: (proxyReq, req, res) => {
-        console.log(`Proxying: ${req.method} ${req.url} to ${proxyReq.path}`);
-    }
-});
-
-// ใช้ proxy สำหรับเส้นทาง /api
-app.use('/api', proxyMiddleware);
-
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
@@ -55,8 +38,8 @@ const options = {
     cert: fs.readFileSync(process.env.SSL_CERT_PATH, 'utf8')
 };
 
-// เริ่มต้นเซิร์ฟเวอร์บนพอร์ต 443 โดยใช้ SSL
-app.listen(443, options, () => {
+// สร้างเซิร์ฟเวอร์ HTTPS โดยใช้ Express
+https.createServer(options, app).listen(443, () => {
     console.log('Server started on port 443 with SSL');
 });
 
