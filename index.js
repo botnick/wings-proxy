@@ -29,9 +29,27 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
+// CORS Middleware เพื่อจัดการ headers
+app.use((req, res, next) => {
+    res.header('Access-Control-Allow-Origin', '*'); // แก้ตรงนี้
+    res.header('Access-Control-Allow-Credentials', 'true');
+    res.header('Access-Control-Allow-Headers', 'Authorization, Accept, Origin, DNT, X-CustomHeader, Keep-Alive, User-Agent, X-Requested-With, If-Modified-Since, Cache-Control, Content-Type, Content-Range, Range');
+    res.header('Access-Control-Allow-Methods', 'GET, POST, OPTIONS, PUT, DELETE, PATCH');
+
+    // หากเป็นการ request แบบ OPTIONS ให้ตอบกลับ status 204 โดยไม่ต้องส่งต่อไปยัง backend
+    if (req.method === 'OPTIONS') {
+        res.header('Access-Control-Max-Age', '1728000');
+        res.header('Content-Type', 'text/plain charset=UTF-8');
+        res.header('Content-Length', '0');
+        return res.sendStatus(204);
+    }
+    
+    next();
+});
+
 // Proxy สำหรับเส้นทาง /api
 const proxyMiddleware = createProxyMiddleware({
-    target: process.env.API_PROXY_URL,
+    target: process.env.API_PROXY_URL, // แก้ตรงนี้
     changeOrigin: true,
     proxyTimeout: 5000, // เพิ่ม timeout เป็น 5 วินาที
     onError: (err, req, res) => {
@@ -49,6 +67,9 @@ const proxyMiddleware = createProxyMiddleware({
     },
     onProxyReq: (proxyReq, req, res) => {
         console.log(`Proxying: ${req.method} ${req.url} to ${proxyReq.path}`);
+    },
+    onProxyRes: (proxyRes, req, res) => {       
+        proxyRes.headers['Access-Control-Allow-Origin'] = '*'; // แก้ตรงนี้
     }
 });
 
