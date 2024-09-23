@@ -36,11 +36,6 @@ const createResponse = (status, req) => ({
 app.use('api/*', proxy(process.env.API_PROXY_URL));
 
 
-app.use('*', (req, res) => {
-    res.status(404).json(createResponse("error", req));
-});
-
-
 // สร้างเซิร์ฟเวอร์ HTTP 
 http.createServer(app).listen(80, () => {
     console.log('Server started on port 80 (HTTP)');
