@@ -1,5 +1,5 @@
 const express = require('express');
-const proxy = require('express-proxy');
+var proxy = require('express-http-proxy');
 
 const http = require('http');
 const https = require('https');
@@ -26,14 +26,11 @@ const createResponse = (status, req) => ({
 });
 
 // Proxy middleware
-const apiProxy = proxy(process.env.API_PROXY_URL, {
-    forwardPath: function(req, res) {
-      return require('url').parse(req.url).path;
-    }
-  });
-  
-  // Use proxy for all routes
-  app.use('/', apiProxy);
+
+// Use proxy for all routes
+
+
+app.use('/', proxy(process.env.API_PROXY_URL));
 
 // จัดการข้อผิดพลาด 404
 /*
