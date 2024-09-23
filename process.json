@@ -4,12 +4,7 @@
         "name": "wings-proxy",
         "script": "npm",
         "args": "start",
-        "watch": true,
-        "env": {
-          "NODE_ENV": "production"
-        },
-        "instances": "max",
-        "exec_mode": "cluster"
+        "watch": true
       }
     ]
   }
