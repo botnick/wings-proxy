@@ -27,6 +27,23 @@ app.get('/', (req, res) => {
     res.json(createResponse("success", req));
 });
 
+// Proxy สำหรับเส้นทาง /api
+const proxyMiddleware = createProxyMiddleware({
+    target: process.env.API_PROXY_URL,
+    changeOrigin: true,
+    proxyTimeout: 1000,
+    onError: (err, req, res) => {
+        console.error('Proxy Error:', err);
+        res.status(500).json({ error: 'Proxy Error' });
+    },
+    onProxyReq: (proxyReq, req, res) => {
+        console.log(`Proxying: ${req.method} ${req.url} to ${proxyReq.path}`);
+    }
+});
+
+// ใช้ proxy สำหรับเส้นทาง /api
+app.use('/api', proxyMiddleware);
+
 // จัดการข้อผิดพลาด 404
 app.use('*', (req, res) => {
     res.status(404).json(createResponse("error", req));
