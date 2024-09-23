@@ -54,20 +54,13 @@ const server = http.createServer(app);
 // สร้าง WebSocket server
 const wss = new WebSocket.Server({ noServer: true });
 
-// จัดการการเชื่อมต่อ WebSocket
 wss.on('connection', (ws, req) => {
     // สร้าง URL สำหรับเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทาง รวมพาธและ query parameters
-    const backendUrl = `ws://localhost:8080${req.url}`; // แก้ไข 'localhost' และพอร์ตตามความเหมาะสม
+    const backendUrl = `ws://0.0.0.0:8080${req.url}`;
 
-    // สร้างการเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทาง
+    // สร้างการเชื่อมต่อไปยังเซิร์ฟเวอร์ปลายทาง โดยส่งต่อ headers ทั้งหมดจาก client
     const targetWs = new WebSocket(backendUrl, {
-        headers: {
-            // ส่งต่อ headers ที่จำเป็นเท่านั้น
-            'User-Agent': req.headers['user-agent'],
-            'Cookie': req.headers['cookie'],
-            'Authorization': req.headers['authorization']
-            // เพิ่ม headers อื่น ๆ ที่เซิร์ฟเวอร์ปลายทางต้องการ
-        }
+        headers: req.headers
     });
 
     // เมื่อการเชื่อมต่อกับเซิร์ฟเวอร์ปลายทางเปิดแล้ว
@@ -133,14 +126,10 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
     const wssHttps = new WebSocket.Server({ noServer: true });
 
     wssHttps.on('connection', (ws, req) => {
-        const backendUrl = `ws://localhost:8080${req.url}`;
+        const backendUrl = `ws://0.0.0.0:8080${req.url}`;
 
         const targetWs = new WebSocket(backendUrl, {
-            headers: {
-                'User-Agent': req.headers['user-agent'],
-                'Cookie': req.headers['cookie'],
-                'Authorization': req.headers['authorization']
-            }
+            headers: req.headers
         });
 
         targetWs.on('open', () => {
@@ -153,6 +142,7 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
             });
         });
 
+        // จัดการข้อผิดพลาด
         targetWs.on('error', (err) => {
             console.error('Error in target WebSocket connection:', err);
             ws.close();
