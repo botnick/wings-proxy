@@ -1,10 +1,10 @@
-const HyperExpress = require('hyper-express');
+const express = require('express');
 const { createProxyMiddleware } = require('http-proxy-middleware');
 const fs = require('fs');
 require('dotenv').config(); // โหลดค่าจากไฟล์ .env
 
-// สร้างเซิร์ฟเวอร์ HyperExpress
-const app = new HyperExpress.Server();
+// สร้างเซิร์ฟเวอร์ Express
+const app = express();
 
 // ข้อมูลเซิร์ฟเวอร์
 const serverInfo = {
@@ -56,9 +56,9 @@ const options = {
 };
 
 // เริ่มต้นเซิร์ฟเวอร์บนพอร์ต 443 โดยใช้ SSL
-app.listen(443, options)
-    .then(() => console.log('Server started on port 443 with SSL'))
-    .catch(console.error);
+app.listen(443, options, () => {
+    console.log('Server started on port 443 with SSL');
+});
 
 // จัดการข้อผิดพลาดที่ไม่ได้จัดการ
 process.on('uncaughtException', console.error);
