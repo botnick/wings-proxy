@@ -62,13 +62,23 @@ wss.on('connection', (ws, req) => {
         headers: clientHeaders  // Forward client headers to the target WebSocket server
     });
 
-    // Forward messages between the client and the target server
-    ws.on('message', (message) => {
-        targetWs.send(message);  // Forward message from client to target server
+    // Wait until the target WebSocket is open before forwarding messages
+    targetWs.on('open', () => {
+        ws.on('message', (message) => {
+            if (targetWs.readyState === WebSocket.OPEN) {
+                targetWs.send(message);  // Forward message from client to target server
+            } else {
+                console.error('Target WebSocket is not open');
+            }
+        });
     });
 
     targetWs.on('message', (message) => {
-        ws.send(message);  // Forward message from target server to client
+        if (ws.readyState === WebSocket.OPEN) {
+            ws.send(message);  // Forward message from target server to client
+        } else {
+            console.error('Client WebSocket is not open');
+        }
     });
 
     // Handle WebSocket closing
