@@ -1,9 +1,9 @@
 const express = require('express');
-var proxy = require('express-http-proxy');
+const proxy = require('express-http-proxy');
 const http = require('http');
 const https = require('https');
 const fs = require('fs');
-require('dotenv').config(); // โหลดค่าจากไฟล์ .env
+require('dotenv').config();
 
 // สร้างเซิร์ฟเวอร์ Express
 const app = express();
@@ -24,17 +24,18 @@ const createResponse = (status, req) => ({
     ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
-// Proxy middleware
+// Proxy สำหรับ /api/*
+app.use('/api', proxy(process.env.API_PROXY_URL));
 
-// Use proxy for all routes
-
-/*app.use('/', (req, res) => {
+// สำหรับเส้นทาง / (root path)
+app.get('/', (req, res) => {
     res.status(200).json(createResponse("success", req));
-});*/
+});
 
-
-app.use('/', proxy(process.env.API_PROXY_URL));
-
+// 404 สำหรับเส้นทางอื่นๆ ที่เหลือ
+app.use('*', (req, res) => {
+    res.status(404).json(createResponse("error", req));
+});
 
 // สร้างเซิร์ฟเวอร์ HTTP 
 http.createServer(app).listen(80, () => {
@@ -47,7 +48,6 @@ if (fs.existsSync(process.env.SSL_KEY_PATH) && fs.existsSync(process.env.SSL_CER
         key: fs.readFileSync(process.env.SSL_KEY_PATH, 'utf8'),
         cert: fs.readFileSync(process.env.SSL_CERT_PATH, 'utf8')
     };
-
     https.createServer(options, app).listen(443, () => {
         console.log('Server started on port 443 with SSL (HTTPS)');
     });
