@@ -33,7 +33,7 @@ const createResponse = (status, req) => ({
 });*/
 
 
-app.use('api/*', proxy(process.env.API_PROXY_URL));
+app.use('/', proxy(process.env.API_PROXY_URL));
 
 
 // สร้างเซิร์ฟเวอร์ HTTP 
