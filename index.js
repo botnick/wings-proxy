@@ -24,22 +24,6 @@ const createResponse = (status, req) => ({
     ipType: (req.headers['x-forwarded-for'] || req.connection.remoteAddress || req.ip).includes(':') ? 'IPv6' : 'IPv4'
 });
 
-// Middleware เพื่อตรวจสอบ request ที่เข้ามา
-app.use((req, res, next) => {
-    console.log(`Incoming request: ${req.method} ${req.url}`);
-    next();
-});
-
-// ใช้ proxy สำหรับ /api/*
-app.use('/api', proxy(process.env.API_PROXY_URL, {
-    proxyReqPathResolver: (req) => {
-        // สร้าง URL ใหม่สำหรับการ proxy
-        return `${req.baseUrl}${req.url}`; // รวม '/api' เข้ากับ URL
-    }
-}));
-
-
-
 // ส่งกลับ 404 สำหรับเส้นทางอื่น ๆ
 app.use((req, res) => {
     res.status(404).json(createResponse("error", req));
